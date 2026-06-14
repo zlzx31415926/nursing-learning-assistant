@@ -51,6 +51,9 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# 🔒 访问控制——输入密码才能使用
+check_password()
+
 # 自定义样式
 st.markdown("""
 <style>
@@ -446,6 +449,38 @@ def generate_learning_loop(disease_name: str, disease_points: str, tier: int, pr
     return call_deepseek(prompt, SYSTEM_PROMPT, max_tokens=8000, progress_placeholder=progress_placeholder)
 
 
+
+# ============================================================
+# 访问控制——密码门禁（密码存在 Streamlit Cloud Secrets 中，不写入代码）
+# ============================================================
+APP_PASSWORD = None  # 部署时从 st.secrets 读取
+
+def check_password():
+    """密码验证界面。"""
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
+
+    if st.session_state.authenticated:
+        return True
+
+    # 从 Streamlit Secrets 读取密码（云端），本地运行时用默认密码
+    try:
+        real_password = st.secrets["app_password"]
+    except:
+        real_password = "123456"  # 本地测试用
+
+    # 未验证 → 显示登录界面
+    st.title("🩺 护理学习助手")
+    st.markdown("---")
+    pwd = st.text_input("请输入访问密码", type="password", placeholder="输入密码后按回车")
+    if pwd:
+        if pwd == real_password:
+            st.session_state.authenticated = True
+            st.rerun()
+        else:
+            st.error("密码错误")
+    st.stop()
+    return False
 
 # ============================================================
 # 初始化 Session State
