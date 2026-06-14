@@ -1,0 +1,8 @@
+api_key.txt
+user_model.json
+error_log.json
+uploads/
+knowledge_base/
+*.log
+__pycache__/
+.streamlit/
