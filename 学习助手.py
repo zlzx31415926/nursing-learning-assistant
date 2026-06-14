@@ -44,15 +44,16 @@ TIER_FORCE_KEYWORDS = [
 # ============================================================
 # 页面设置
 # ============================================================
-st.set_page_config(
-    page_title="护理学习助手",
-    page_icon="🩺",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+# set_page_config 已移至 app.py（解决 Streamlit Cloud 中文文件名问题）
+# 本地直接运行时用默认配置
+try:
+    st.set_page_config(page_title="护理学习助手", page_icon="🩺", layout="wide", initial_sidebar_state="expanded")
+except:
+    pass  # app.py 已经调用过了
 
-# 🔒 访问控制——输入密码才能使用
-check_password()
+# 访问控制——从 app.py 进入时已验证，本地运行时跳过
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = True  # 本地直接运行无需密码
 
 # 自定义样式
 st.markdown("""
