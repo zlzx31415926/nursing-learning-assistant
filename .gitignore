@@ -6,3 +6,5 @@ knowledge_base/
 *.log
 __pycache__/
 .streamlit/
+deploy.*
+push_*.py
