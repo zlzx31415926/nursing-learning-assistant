@@ -1,7 +1,7 @@
 """
 护理学习助手 · 六阶段交互式学习系统
 =====================================
-上传原始知识点文件 → AI归组理顺 → 按档位生成学习环 → 交互式学习+错题追踪
+上传原始知识点文件 → 智能归组理顺 → 按档位生成学习环 → 交互式学习+错题追踪
 """
 
 import streamlit as st
@@ -274,7 +274,7 @@ def get_error_stats(disease: str = None) -> dict:
 
 
 # ============================================================
-# AI 引擎
+# 智能引擎
 # ============================================================
 SYSTEM_PROMPT = """你是一位资深护理考试命题专家，同时也是临床带教护士。你的视角不是"老师讲解"，而是**护士推理**——学生拿到你的材料后，应该能训练出"看到病人→推出诊断→决定护理优先级"的临床思维。
 
@@ -355,7 +355,7 @@ def load_toc(subject: str) -> str:
 
 
 def ai_group_and_sort(raw_text: str, subject: str = "") -> dict:
-    """AI 归组：对照教材目录，从散乱原始资料中识别疾病并按逻辑排序。"""
+    """智能归组：对照教材目录，从散乱原始资料中识别疾病并按逻辑排序。"""
     # 加载教材目录作为归类参照
     toc_ref = load_toc(subject)
 
@@ -465,7 +465,7 @@ def judge_tier(disease_info: dict) -> int:
 
 def generate_learning_loop(disease_name: str, disease_points: str, tier: int, progress_placeholder=None) -> str:
     """生成六阶段学习环（支持流式进度显示）。"""
-    # 全文传入，越多越好——让AI看到全部知识点
+    # 全文传入，越多越好——让引擎看到全部知识点
     points_text = disease_points[:25000] if len(disease_points) > 25000 else disease_points
 
     tier_config = {
@@ -717,7 +717,7 @@ with st.sidebar:
                     st.session_state.diseases = []
                     st.session_state.learning_loops = {}
                     st.session_state.selected_disease = None
-                    with st.spinner("🤖 AI 正在识别疾病并归组..."):
+                    with st.spinner("🤖 正在识别疾病并归组..."):
                         try:
                             result = ai_group_and_sort(raw_text, st.session_state.current_subject)
                             diseases = result.get("diseases", [])
@@ -763,7 +763,7 @@ with st.sidebar:
         st.session_state.learning_loops = {}
         st.session_state.selected_disease = None
 
-        with st.spinner("🤖 AI 正在识别疾病并归组..."):
+        with st.spinner("🤖 正在识别疾病并归组..."):
             try:
                 result = ai_group_and_sort(raw_text, st.session_state.current_subject)
                 diseases = result.get("diseases", [])
@@ -798,7 +798,7 @@ with st.sidebar:
             d = pending["d"]
             tier = pending["tier"]
             full_raw = st.session_state.raw_text
-            with st.spinner(f"🤖 正在生成「{name}」（第{tier}档），AI在全力写作中..."):
+            with st.spinner(f"🤖 正在生成「{name}」（第{tier}档），正在全力写作中..."):
                 loop_content = generate_learning_loop(name, full_raw, tier)
             safe_name = re.sub(r'[\\/:*?"<>|]', '-', name)
             (subject_kb_dir / f"{safe_name}_六阶段学习环.md").write_text(loop_content, encoding='utf-8')
@@ -875,7 +875,7 @@ if not selected:
     st.markdown("---")
     st.markdown("### 使用流程")
     st.markdown("1. **上传**机构原始资料（.txt 或 .docx）")
-    st.markdown("2. 点击**开始分析**，AI 自动识别疾病并归组")
+    st.markdown("2. 点击**开始分析**，系统自动识别疾病并归组")
     st.markdown("3. 从左侧**选择考点**，自动生成六阶段学习环")
     st.markdown("4. **交互学习**——填空、推理、辨析、决策")
     st.markdown("5. 错题自动收集，考前精准补漏")
@@ -925,7 +925,7 @@ if not loop_content:
 btn_col1, btn_col2, btn_col3, btn_col4 = st.columns(4)
 with btn_col1:
     if st.button("🤔 问老师", use_container_width=True,
-                 help="对任何概念、名词、机制有疑问——直接问，AI老师给你讲解"):
+                 help="对任何概念、名词、机制有疑问——直接问，老师给你讲解"):
         st.session_state.show_ask_teacher = True
 with btn_col2:
     if st.button("🔗 粘合考点", use_container_width=True):
