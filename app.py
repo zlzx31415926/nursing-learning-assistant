@@ -1,10 +1,10 @@
 """
-护理学习助手 - Streamlit Cloud 入口（含密码门禁）
+2303/205机密文件 - Streamlit Cloud 入口（含密码门禁）
 """
 import streamlit as st
 import os, sys
 
-st.set_page_config(page_title="护理学习助手", page_icon="🩺", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="2303/205机密文件", page_icon="🩺", layout="wide", initial_sidebar_state="expanded")
 
 # ── 密码门禁 ──
 if "authenticated" not in st.session_state:
@@ -16,7 +16,7 @@ if not st.session_state.authenticated:
     except:
         real_password = "123456"
 
-    st.title("🩺 护理学习助手")
+    st.title("🩺 2303/205机密文件")
     st.markdown("---")
     pwd = st.text_input("请输入访问密码", type="password", placeholder="输入密码后按回车")
     if pwd:

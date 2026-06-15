@@ -1,5 +1,5 @@
 """
-护理学习助手 · 六阶段交互式学习系统
+2303/205机密文件 · 六阶段交互式学习系统
 =====================================
 上传原始知识点文件 → 智能归组理顺 → 按档位生成学习环 → 交互式学习+错题追踪
 """
@@ -47,7 +47,7 @@ TIER_FORCE_KEYWORDS = [
 # set_page_config 已移至 app.py（解决 Streamlit Cloud 中文文件名问题）
 # 本地直接运行时用默认配置
 try:
-    st.set_page_config(page_title="护理学习助手", page_icon="🩺", layout="wide", initial_sidebar_state="expanded")
+    st.set_page_config(page_title="2303/205机密文件", page_icon="🩺", layout="wide", initial_sidebar_state="expanded")
 except:
     pass  # app.py 已经调用过了
 
@@ -600,7 +600,7 @@ def check_password():
         real_password = "123456"  # 本地测试用
 
     # 未验证 → 显示登录界面
-    st.title("🩺 护理学习助手")
+    st.title("🩺 2303/205机密文件")
     st.markdown("---")
     pwd = st.text_input("请输入访问密码", type="password", placeholder="输入密码后按回车")
     if pwd:
@@ -642,7 +642,7 @@ init_session()
 # 侧边栏
 # ============================================================
 with st.sidebar:
-    st.title("🩺 护理学习助手")
+    st.title("🩺 2303/205机密文件")
 
     # API Key
     st.subheader("🔑 API 设置")
