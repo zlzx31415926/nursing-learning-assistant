@@ -368,11 +368,12 @@ def ai_group_and_sort(raw_text: str, subject: str = "") -> dict:
 请对照教材目录，将原始资料中的每条知识点精准归类到对应的疾病/小节中。
 
 ⚠️ 归类规则（必须遵守）：
-1. 疾病名称必须取自教材目录——目录里写了什么病，你就分什么病。不要自创名字，不要合并不同的病。
-2. 每个目录中的疾病，只要资料里有相关知识点，就必须单独建一个条目。不要因为知识点少就把两个病合并。
-3. 如果一条知识点涉及多个疾病（比如并发症、鉴别诊断），把它放在最主要的疾病下，并在 low_confidence_entries 中标注交叉关联。
-4. 按 "病因→机制→临床表现→检查→治疗→护理→并发症" 的逻辑顺序排列每个疾病的知识点。
-5. 对归类信心度打分：高信心度（边界清晰）或 低信心度（可能与其他疾病重叠）。
+1. **只列出资料中实际存在的疾病**——目录是参考地图，但只有资料里有知识点的疾病才能建条目。目录中列出了但资料完全没有涉及的疾病，一律不要出现。出现0条知识点的疾病就是错误。
+2. 疾病名称必须取自教材目录——不要自创名字。
+3. 每个疾病单独建条目，不要因为知识点少就把两个不同的病合并。
+4. 如果一条知识点涉及多个疾病（比如并发症、鉴别诊断），把它放在最主要的疾病下，并在 low_confidence_entries 中标注交叉关联。
+5. 按 "病因→机制→临床表现→检查→治疗→护理→并发症" 的逻辑顺序排列每个疾病的知识点。
+6. 对归类信心度打分：只在资料中明确出现知识点≥3条 → high；1-2条且边界模糊 → low。
 
 {toc_ref}
 
@@ -510,6 +511,16 @@ def generate_learning_loop(disease_name: str, disease_points: str, tier: int, pr
 
 ⚠️ 六阶段同等重要，环环相扣——前一阶段是后一阶段的基石，缺一不可：
 阶段一（机制理解）→ 理解"为什么" → 阶段二（精准记忆）→ 记牢"是什么" → 阶段三（辨析训练）→ 区分"像什么但不是" → 阶段四（临床应用）→ 做出"正确的护理决策" → 阶段五（实战检验）→ 在模拟考场中验证 → 阶段六（复盘提升）→ 发现薄弱点针对性修补
+
+【输出格式——必须遵守的阶段标题】：
+每个阶段必须使用以下格式作为一级标题，否则无法正确解析：
+# 阶段一：理解
+# 阶段二：记忆
+# 阶段三：辨析
+# 阶段四：应用
+# 阶段五：检验
+# 阶段六：复盘
+标题必须完全一致，不要在前面加其他文字或符号。
 
 【阶段一·硬性要求】：
 1. 「一句话机制速记」：150-200字，必须包含：疾病本质 + 关键病理机制 + 最核心鉴别点
@@ -936,18 +947,59 @@ def parse_stages(content: str) -> dict:
 stages = parse_stages(loop_content)
 stage_names = list(stages.keys())
 
-# 阶段选项卡
-tabs = st.tabs(stage_names)
+# 兜底：解析失败时直接用全部内容
+if len(stage_names) == 1 and stage_names[0].startswith("📖"):
+    st.markdown(stages[stage_names[0]])
+    st.stop()
+
+# 学习模式切换
+col_mode, col_progress = st.columns([1, 3])
+with col_mode:
+    sequential = st.checkbox("🎓 逐阶递进", value=True, help="完成当前阶段后才能进入下一阶段")
+with col_progress:
+    if sequential:
+        current = st.session_state.get("current_stage", 0)
+        progress_text = " → ".join([f"{'✅' if j < current else '⬤' if j == current else '○'} {name}" for j, name in enumerate(stage_names)])
+        st.caption(progress_text)
+
+if sequential:
+    # 逐阶模式：只展示当前阶段
+    current = st.session_state.get("current_stage", 0)
+    if current >= len(stage_names):
+        current = 0
+        st.session_state.current_stage = 0
+
+    tab_name = stage_names[current]
+    content = stages.get(tab_name, "")
+    st.subheader(f"🎯 {tab_name}")
+
+    # --- 阶段内容渲染（与自由模式共用下面的逻辑）---
+    # 为简洁，这里用 if-elif 复用原始渲染逻辑
+    i = current
+    tabs = [None]  # dummy
+else:
+    # 自由模式：所有阶段以选项卡展示
+    current = None
+    tabs = st.tabs(stage_names)
 
 for i, tab_name in enumerate(stage_names):
-    with tabs[i]:
-        content = stages.get(tab_name, "")
-
-        # 兜底：如果内容没有被分阶段，直接展示原文
-        if tab_name.startswith("📖"):
-            st.markdown(content)
+    if sequential:
+        if i != current:
             continue
+    else:
+        tabs_i = tabs[i]
 
+    content = stages.get(tab_name, "")
+
+    # 兜底：如果内容没有被分阶段，直接展示原文
+    if tab_name.startswith("📖"):
+        st.markdown(content)
+        continue
+
+    # 打开阶段渲染上下文（自由模式用 tab，逐阶模式直接渲染）
+    if not sequential:
+        tabs_i.__enter__()
+    try:
         # 阶段一：推理链交互
         if i == 0:
             # 查找填空标记
@@ -1166,6 +1218,22 @@ for i, tab_name in enumerate(stage_names):
 
             with st.expander("📄 完整阶段六内容"):
                 st.markdown(content)
+    finally:
+        if not sequential:
+            tabs_i.__exit__(None, None, None)
+
+    # 逐阶递进：阶段完成按钮
+    if sequential and current is not None and i == current:
+        st.divider()
+        if current < len(stage_names) - 1:
+            if st.button(f"✅ 完成「{stage_names[current]}」，进入「{stage_names[current+1]}」→", use_container_width=True, key=f"next_stage_{current}"):
+                st.session_state.current_stage = current + 1
+                st.rerun()
+        else:
+            st.success("🎉 全部六个阶段已完成！")
+            if st.button("🔄 重新学习", use_container_width=True):
+                st.session_state.current_stage = 0
+                st.rerun()
 
 # ============================================================
 # 问老师 —— 对任何概念/名词/机制提问
