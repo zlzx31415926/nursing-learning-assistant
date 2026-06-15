@@ -557,6 +557,28 @@ def generate_learning_loop(disease_name: str, disease_points: str, tier: int, pr
     return call_deepseek(prompt, SYSTEM_PROMPT, max_tokens=8000, progress_placeholder=progress_placeholder)
 
 
+def glue_topics(disease_a: str, content_a: str, disease_b: str, content_b: str) -> str:
+    """粘合两个考点——生成跨章节融汇卡片。"""
+    prompt = f"""你是一位护理考试命题专家。请将以下两个考点/疾病"粘合"在一起，生成一份跨章节融汇卡片。
+
+考点A：「{disease_a}」
+考点B：「{disease_b}」
+
+卡片内容要求：
+1. **共同机制/关联**：两个疾病在病理生理上有什么关联？（比如：一个病会导致另一个、共享同一套机制、药物之间的相互影响）
+2. **关键鉴别点**：如果考题中同时出现这两个疾病的症状，如何快速区分？（2-3个鉴别要点）
+3. **联合出题预判**：出题人可能怎样把这两个考点融合进一道题？（给1个完整的跨章节病例题干样例）
+4. **护理交叉注意**：如果患者同时有这两个疾病，护理上有什么需要特别注意的？（药物禁忌、生命体征监测、体位等）
+
+考点A的参考内容：
+{content_a}
+
+考点B的参考内容：
+{content_b}
+
+请用 Markdown 格式输出，语言简练，300-500字即可。每个部分用小标题分隔。"""
+    return call_deepseek(prompt, max_tokens=2000)
+
 
 # ============================================================
 # 访问控制——密码门禁（密码存在 Streamlit Cloud Secrets 中，不写入代码）
