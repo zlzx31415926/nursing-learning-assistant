@@ -1264,6 +1264,21 @@ if st.session_state.get("show_ask_teacher"):
     st.divider()
     st.subheader("🤔 问老师")
 
+    # 加载历史问答
+    qa_file = subject_kb_dir / f"{safe_name_dl}_问答记录.json"
+    if qa_file.exists():
+        try:
+            qa_history = json.loads(qa_file.read_text(encoding='utf-8'))
+            if qa_history:
+                with st.expander(f"📝 历史问答（{len(qa_history)}条）"):
+                    for qa in reversed(qa_history):
+                        st.caption(f"🕐 {qa.get('time', '')}")
+                        st.markdown(f"**❓ {qa.get('question', '')}**")
+                        st.markdown(qa.get('answer', ''))
+                        st.divider()
+        except:
+            pass
+
     # 快捷提问
     quick_q = st.radio(
         "想了解什么？",
@@ -1317,6 +1332,22 @@ if st.session_state.get("show_ask_teacher"):
                 st.markdown("---")
                 st.markdown("### 💡 老师讲解")
                 st.markdown(answer)
+
+                # 保存问答记录
+                qa_file = subject_kb_dir / f"{safe_name_dl}_问答记录.json"
+                qa_history = []
+                if qa_file.exists():
+                    try:
+                        qa_history = json.loads(qa_file.read_text(encoding='utf-8'))
+                    except:
+                        qa_history = []
+                qa_history.append({
+                    "question": user_question[:500],
+                    "answer": answer,
+                    "time": datetime.now().strftime("%m/%d %H:%M")
+                })
+                qa_file.write_text(json.dumps(qa_history, ensure_ascii=False, indent=2), encoding='utf-8')
+
                 # 追问
                 st.text_input("还有不懂的？继续追问：", key=f"followup_{hash(user_question)}", placeholder="继续问...")
             except Exception as e:
