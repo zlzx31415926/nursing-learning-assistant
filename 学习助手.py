@@ -526,7 +526,9 @@ def generate_learning_loop(disease_name: str, disease_points: str, tier: int, pr
 - 不因考频低跳过任何知识点，一律平等对待
 
 【知识点原文】：
-{points_text}"""
+{points_text}
+
+⚠️ 如果上面的知识点原文中没有与"{disease_name}"直接相关的内容，不要跳过——请基于你的专业知识直接生成完整的学习材料。考试重点、临床表现、护理要点等核心内容你都知道。"""
 
     # ========== 第三档：拆成两次，各8000 tokens专攻三阶段 ==========
     if tier == 3:
@@ -856,11 +858,7 @@ with st.sidebar:
                 conf_mark = ""
 
             btn_label = f"{tier_emoji} {name} ({count}条) {conf_mark}"
-            btn_disabled = (confidence == "none" and count == 0)
-            if btn_disabled:
-                st.button(btn_label, key=f"disease_{i}", use_container_width=True, disabled=True,
-                          help="该疾病在资料中无知识点，暂不可生成")
-            elif st.button(btn_label, key=f"disease_{i}", use_container_width=True):
+            if st.button(btn_label, key=f"disease_{i}", use_container_width=True):
                 if name in st.session_state.learning_loops:
                     st.session_state.selected_disease = d
                     st.rerun()
