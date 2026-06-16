@@ -365,15 +365,34 @@ def ai_group_and_sort(raw_text: str, subject: str = "") -> dict:
     if toc_ref:
         prompt = f"""你是一位护理教学专家。以下是一份护理学知识点的原始资料，同时附有该科目教材的完整目录。
 
-请对照教材目录，将原始资料中的每条知识点精准归类到对应的疾病/小节中。
+请对照教材目录，将原始资料中的每条知识点精准归类。教材目录是唯一标准——上面列了什么疾病，归类结果就必须出现什么疾病，一个都不准漏。
 
-⚠️ 归类规则（必须遵守）：
-1. **只列出资料中实际存在的疾病**——目录是参考地图，但只有资料里有知识点的疾病才能建条目。目录中列出了但资料完全没有涉及的疾病，一律不要出现。出现0条知识点的疾病就是错误。
-2. 疾病名称必须取自教材目录——不要自创名字。
-3. 每个疾病单独建条目，不要因为知识点少就把两个不同的病合并。
-4. 如果一条知识点涉及多个疾病（比如并发症、鉴别诊断），把它放在最主要的疾病下，并在 low_confidence_entries 中标注交叉关联。
-5. 按 "病因→机制→临床表现→检查→治疗→护理→并发症" 的逻辑顺序排列每个疾病的知识点。
-6. 对归类信心度打分：只在资料中明确出现知识点≥3条 → high；1-2条且边界模糊 → low。
+⚠️ 归类规则（必须逐条遵守）：
+
+**规则1：目录全覆盖**
+教材目录里列出的每一个疾病，都必须出现在你的输出中。不要跳过、不要省略。如果某个疾病在原始资料中找不到对应知识点 → 照常列出，entry_count 填 0，confidence 填 "none"。
+
+**规则2：合并章节的知识点要同时归到每个疾病**
+如果原始资料把多个疾病合并论述（比如只有一个"疖和痈"章节，写了10条知识点），这10条知识点应**同时算到疖和痈两个疾病的条目中**。也就是：
+- "疖"条目：列出这10条，entry_count=10，confidence="low"，在 low_confidence_entries 中标注"条目与痈共享——原始资料未拆分"
+- "痈"条目：同样列出这10条，entry_count=10，confidence="low"，标注"条目与疖共享——原始资料未拆分"
+这样两个疾病都有内容可以生成，使用者也能看到合并提示。
+
+**规则3：禁止自创打包大类**
+如果原始资料里出现了"非特异性感染"这种将多个疾病打包的类别，不要把它当成一个独立的疾病条目。把里面的知识点分到各自对应的TOC疾病中去（疖、痈、蜂窝织炎等），每个疾病独立建条目。除非TOC本身就有一个叫"非特异性感染"的条目。
+
+**规则4：交叉知识点归属**
+如果一条知识点涉及多个疾病（比如并发症、鉴别诊断），把它放在最主要的疾病下，并在 low_confidence_entries 中标注"条目X 同时涉及[疾病A]和[疾病B]"。
+
+**规则5：逻辑排序**
+按 "病因→机制→临床表现→检查→治疗→护理→并发症" 的逻辑顺序排列每个疾病的知识点。
+
+**规则6：信心度打分**
+- entry_count ≥ 3 且边界清晰 → "high"
+- entry_count 1-2 条或边界模糊 → "low"
+- entry_count = 0（资料中没有该疾病的知识点）→ "none"
+
+请确保输出 JSON 中 diseases 数组的条目数量与你看到的教材目录中的疾病数量一致。如果不一致，说明你漏了。
 
 {toc_ref}
 
@@ -829,10 +848,19 @@ with st.sidebar:
             tier = judge_tier(d)
             tier_emoji = {1: "🔵", 2: "🟠", 3: "🔴"}.get(tier, "⚪")
             confidence = d.get("confidence", "high")
-            conf_mark = "⚠️" if confidence == "low" else ""
+            if confidence == "none":
+                conf_mark = "⚪"
+            elif confidence == "low":
+                conf_mark = "⚠️"
+            else:
+                conf_mark = ""
 
             btn_label = f"{tier_emoji} {name} ({count}条) {conf_mark}"
-            if st.button(btn_label, key=f"disease_{i}", use_container_width=True):
+            btn_disabled = (confidence == "none" and count == 0)
+            if btn_disabled:
+                st.button(btn_label, key=f"disease_{i}", use_container_width=True, disabled=True,
+                          help="该疾病在资料中无知识点，暂不可生成")
+            elif st.button(btn_label, key=f"disease_{i}", use_container_width=True):
                 if name in st.session_state.learning_loops:
                     st.session_state.selected_disease = d
                     st.rerun()
