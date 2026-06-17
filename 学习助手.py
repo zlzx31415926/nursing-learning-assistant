@@ -394,6 +394,8 @@ def ai_group_and_sort(raw_text: str, subject: str = "") -> dict:
 
 请确保输出 JSON 中 diseases 数组的条目数量与你看到的教材目录中的疾病数量一致。如果不一致，说明你漏了。
 
+⚠️ 输出优化：对于 entry_count=0 的疾病，可以简化输出——只保留 name、chapter、confidence:"none"、entry_count:0 四个字段，summary 写"暂无知识点"。这样大量0条疾病不会撑爆输出长度。对于有知识点的疾病，正常输出完整字段。
+
 {toc_ref}
 
 请输出 JSON 格式：
@@ -450,16 +452,19 @@ def ai_group_and_sort(raw_text: str, subject: str = "") -> dict:
 ```
 原始资料：
 {sample}"""
-    response = call_deepseek(prompt, SYSTEM_PROMPT, max_tokens=3000)
+    response = call_deepseek(prompt, SYSTEM_PROMPT, max_tokens=8000)
     # 解析 JSON
     json_match = re.search(r'```json\s*(.*?)\s*```', response, re.DOTALL)
     if json_match:
-        return json.loads(json_match.group(1))
+        try:
+            return json.loads(json_match.group(1))
+        except Exception as e:
+            return {"diseases": [], "quality_self_assessment": "low", "raw": response[:500], "parse_error": str(e)}
     # 尝试直接解析
     try:
         return json.loads(response)
     except:
-        return {"diseases": [], "quality_self_assessment": "low", "raw": response}
+        return {"diseases": [], "quality_self_assessment": "low", "raw": response[:500]}
 
 
 def judge_tier(disease_info: dict) -> int:
