@@ -529,7 +529,22 @@ def generate_learning_loop(disease_name: str, disease_points: str, tier: int, pr
 - 如果知识点充足 → 基于原文展开深化
 - 如果知识点很少或不完整 → 用你的专业知识补全所有缺失的考试重点、临床表现、护理要点
 - 如果完全没有相关知识点 → 完全基于你的专业知识生成完整材料
-核心原则：无论原文有多少内容，最终输出的六阶段材料必须覆盖该疾病的完整考试范围。"""
+核心原则：无论原文有多少内容，最终输出的六阶段材料必须覆盖该疾病的完整考试范围。
+
+【跨章节雷达数据——在输出末尾附加】：
+在六个阶段全部输出完毕后，请在末尾单独输出一个雷达数据块，用于跨章节关联匹配。格式如下：
+
+```radar-json
+{{
+  "概念": {{"关键概念1": "简要说明", "关键概念2": "简要说明"}},
+  "药物": {{"药名1": "作用+适应症", "药名2": "作用+适应症"}},
+  "护理诊断": {{"诊断1": "相关因素", "诊断2": "相关因素"}},
+  "并发症": {{"并发症1": "机制+预警", "并发症2": "机制+预警"}},
+  "检查": {{"检查1": "首选/金标准", "检查2": "首选/金标准"}},
+  "治疗": {{"措施1": "依据", "措施2": "依据"}}
+}}
+```
+每类选3-5个最核心的条目即可，不必面面俱到。"""
 
     # ========== 第三档：拆成两次，各8000 tokens专攻三阶段 ==========
     if tier == 3:
@@ -815,6 +830,18 @@ with st.sidebar:
             with st.spinner(f"🤖 正在生成「{name}」（第{tier}档），正在全力写作中..."):
                 loop_content = generate_learning_loop(name, full_raw, tier)
             safe_name = re.sub(r'[\\/:*?"<>|]', '-', name)
+            # 提取并保存雷达数据
+            radar_match = re.search(r'```radar-json\s*(.*?)\s*```', loop_content, re.DOTALL)
+            if radar_match:
+                try:
+                    radar_data = json.loads(radar_match.group(1))
+                    (subject_kb_dir / f"{safe_name}_雷达.json").write_text(
+                        json.dumps(radar_data, ensure_ascii=False, indent=2), encoding='utf-8')
+                except:
+                    pass
+                # 从显示内容中删除雷达JSON块
+                loop_content = re.sub(r'```radar-json\s*.*?\s*```', '', loop_content, flags=re.DOTALL).strip()
+
             (subject_kb_dir / f"{safe_name}_六阶段学习环.md").write_text(loop_content, encoding='utf-8')
             st.session_state.learning_loops[name] = loop_content
             st.session_state.selected_disease = d
@@ -976,6 +1003,43 @@ def parse_stages(content: str) -> dict:
         if i < len(matches):
             stages[name] = matches[i].group(1)
     return stages
+
+# ===== 雷达扫描 =====
+def collect_radar_matches(current_name, kb_dir):
+    """扫描所有 _雷达.json，找出与当前疾病匹配的跨章节关联。"""
+    current_file = kb_dir / f"{current_name}_雷达.json"
+    if not current_file.exists():
+        return {}
+
+    current_radar = json.loads(current_file.read_text(encoding='utf-8'))
+    matches = {"概念": [], "药物": [], "护理诊断": [], "并发症": [], "检查": [], "治疗": []}
+
+    for rf in sorted(kb_dir.glob("*_雷达.json")):
+        other_name = rf.stem.replace("_雷达", "")
+        safe_other = re.sub(r'[\\/:*?"<>|]', '-', other_name)
+        if other_name == current_name:
+            continue
+        try:
+            other_radar = json.loads(rf.read_text(encoding='utf-8'))
+        except:
+            continue
+
+        for category in matches:
+            cur_items = current_radar.get(category, {})
+            oth_items = other_radar.get(category, {})
+            common = set(cur_items.keys()) & set(oth_items.keys())
+            for key in common:
+                matches[category].append({
+                    "关键词": key,
+                    "当前": cur_items[key],
+                    "关联疾病": other_name,
+                    "关联说明": oth_items[key]
+                })
+
+    total = sum(len(v) for v in matches.values())
+    return matches if total > 0 else {}
+
+radar_matches = collect_radar_matches(safe_name_dl, subject_kb_dir)
 
 stages = parse_stages(loop_content)
 stage_names = list(stages.keys())
@@ -1254,6 +1318,23 @@ for i, tab_name in enumerate(stage_names):
     finally:
         if not sequential:
             tabs_i.__exit__(None, None, None)
+
+    # 雷达卡片（当前阶段结束，显示跨章节关联）
+    stage_radar_cats = {
+        0: ["概念"],           # 阶段一：只显示概念关联
+        1: ["药物", "检查"],    # 阶段二：药物+检查关联
+        2: ["护理诊断"],        # 阶段三：护理诊断关联
+        3: ["治疗", "并发症"],  # 阶段四：治疗+并发症关联
+        4: ["概念", "药物", "护理诊断", "并发症"],  # 阶段五：综合
+    }.get(i, [])
+    if radar_matches:
+        stage_matches = {k: v for k, v in radar_matches.items() if k in stage_radar_cats and v}
+        if stage_matches:
+            total_hits = sum(len(v) for v in stage_matches.values())
+            with st.expander(f"📡 跨章节雷达 · 本阶段发现 {total_hits} 个关联"):
+                for cat, items in stage_matches.items():
+                    for item in items[:3]:  # 每类最多显示3条
+                        st.markdown(f"> 🔗 **{item['关键词']}**——在「{item['关联疾病']}」中不同：{item['关联说明']}")
 
     # 逐阶递进：阶段完成按钮
     if sequential and current is not None and i == current:
