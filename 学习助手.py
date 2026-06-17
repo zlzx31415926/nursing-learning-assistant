@@ -845,6 +845,7 @@ with st.sidebar:
             (subject_kb_dir / f"{safe_name}_六阶段学习环.md").write_text(loop_content, encoding='utf-8')
             st.session_state.learning_loops[name] = loop_content
             st.session_state.selected_disease = d
+            st.session_state.current_stage = 0
             del st.session_state["_pending_gen"]
             st.rerun()
 
@@ -860,9 +861,9 @@ with st.sidebar:
             if st.button(btn_label, key=f"disease_{i}", use_container_width=True):
                 if name in st.session_state.learning_loops:
                     st.session_state.selected_disease = d
+                    st.session_state.current_stage = 0
                     st.rerun()
                 else:
-                    # 不直接调API，只打标记，等下次渲染
                     st.session_state["_pending_gen"] = {"name": name, "d": d, "tier": tier}
                     st.rerun()
     else:
@@ -892,6 +893,7 @@ with st.sidebar:
                     content = f.read_text(encoding='utf-8')
                     st.session_state.learning_loops[stem] = content
                     st.session_state.selected_disease = {"name": stem, "source": subject_name, "is_review": True}
+                    st.session_state.current_stage = 0
                     st.rerun()
 
     st.divider()
@@ -1315,26 +1317,27 @@ for i, tab_name in enumerate(stage_names):
 
             with st.expander("📄 完整阶段六内容"):
                 st.markdown(content)
+
+        # 雷达卡片（当前阶段末尾，必须在 try 内、tab 上下文内）
+        stage_radar_cats = {
+            0: ["概念"],           # 阶段一：只显示概念关联
+            1: ["药物", "检查"],    # 阶段二：药物+检查关联
+            2: ["护理诊断"],        # 阶段三：护理诊断关联
+            3: ["治疗", "并发症"],  # 阶段四：治疗+并发症关联
+            4: ["概念", "药物", "护理诊断", "并发症"],  # 阶段五：综合
+        }.get(i, [])
+        if radar_matches:
+            stage_matches = {k: v for k, v in radar_matches.items() if k in stage_radar_cats and v}
+            if stage_matches:
+                total_hits = sum(len(v) for v in stage_matches.values())
+                with st.expander(f"📡 跨章节雷达 · 本阶段发现 {total_hits} 个关联"):
+                    for cat, items in stage_matches.items():
+                        for item in items[:3]:
+                            st.markdown(f"> 🔗 **{item['关键词']}**——在「{item['关联疾病']}」中不同：{item['关联说明']}")
+
     finally:
         if not sequential:
             tabs_i.__exit__(None, None, None)
-
-    # 雷达卡片（当前阶段结束，显示跨章节关联）
-    stage_radar_cats = {
-        0: ["概念"],           # 阶段一：只显示概念关联
-        1: ["药物", "检查"],    # 阶段二：药物+检查关联
-        2: ["护理诊断"],        # 阶段三：护理诊断关联
-        3: ["治疗", "并发症"],  # 阶段四：治疗+并发症关联
-        4: ["概念", "药物", "护理诊断", "并发症"],  # 阶段五：综合
-    }.get(i, [])
-    if radar_matches:
-        stage_matches = {k: v for k, v in radar_matches.items() if k in stage_radar_cats and v}
-        if stage_matches:
-            total_hits = sum(len(v) for v in stage_matches.values())
-            with st.expander(f"📡 跨章节雷达 · 本阶段发现 {total_hits} 个关联"):
-                for cat, items in stage_matches.items():
-                    for item in items[:3]:  # 每类最多显示3条
-                        st.markdown(f"> 🔗 **{item['关键词']}**——在「{item['关联疾病']}」中不同：{item['关联说明']}")
 
     # 逐阶递进：阶段完成按钮
     if sequential and current is not None and i == current:
