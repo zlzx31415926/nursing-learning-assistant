@@ -871,6 +871,50 @@ with st.sidebar:
 
     st.divider()
 
+    # ==================== 补全雷达 ====================
+    if st.button("🔧 一键补全雷达数据", use_container_width=True,
+                 help="扫描已生成的学习材料，AI提取跨章节标签（不重新生成内容，轻量快速）"):
+        # 收集所有没有雷达的 md 文件
+        all_md = list(KNOWLEDGE_BASE_DIR.rglob("*_六阶段学习环.md"))
+        missing = [f for f in all_md if not f.with_name(f.stem.replace("_六阶段学习环", "_雷达.json")).exists()]
+        if missing:
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            for idx, md_file in enumerate(missing):
+                disease_name = md_file.stem.replace("_六阶段学习环", "")
+                status_text.text(f"🔍 正在提取「{disease_name}」的雷达标签... ({idx+1}/{len(missing)})")
+                try:
+                    content_sample = md_file.read_text(encoding='utf-8')[:4000]
+                    radar_prompt = f"""从以下护理学习材料中提取跨章节关联标签。只输出JSON，不要解释。
+
+{content_sample}
+
+请按以下格式输出（每类选3-5个最核心的）：
+```json
+{{
+  "概念": {{"关键词": "一句话关联说明"}},
+  "药物": {{"药名": "作用+适应症"}},
+  "护理诊断": {{"诊断名": "相关因素"}},
+  "并发症": {{"并发症名": "机制+预警"}},
+  "检查": {{"检查名": "首选或金标准"}},
+  "治疗": {{"措施名": "依据"}}
+}}
+```"""
+                    radar_json = call_deepseek(radar_prompt, max_tokens=2000)
+                    # 提取 JSON
+                    jm = re.search(r'```json\s*(.*?)\s*```', radar_json, re.DOTALL)
+                    if jm:
+                        radar_data = json.loads(jm.group(1))
+                        radar_file = md_file.with_name(disease_name + "_雷达.json")
+                        radar_file.write_text(json.dumps(radar_data, ensure_ascii=False, indent=2), encoding='utf-8')
+                except Exception as e:
+                    status_text.text(f"⚠️「{disease_name}」提取失败: {e}")
+                progress_bar.progress((idx + 1) / len(missing))
+            status_text.text(f"✅ 完成！已为 {len(missing)} 个疾病补全雷达数据")
+        else:
+            st.success("✅ 所有学习材料已有雷达数据，无需补全")
+        st.rerun()
+
     # ==================== 所有学科知识库 ====================
     st.subheader("💾 全部知识库")
 
