@@ -444,7 +444,7 @@ def ai_group_and_sort(raw_text: str, subject: str = "") -> dict:
 ```
 原始资料：
 {sample}"""
-    response = call_deepseek(prompt, SYSTEM_PROMPT, max_tokens=8000)
+    response = call_deepseek(prompt, SYSTEM_PROMPT, max_tokens=4000)
     # 解析 JSON
     json_match = re.search(r'```json\s*(.*?)\s*```', response, re.DOTALL)
     if json_match:
