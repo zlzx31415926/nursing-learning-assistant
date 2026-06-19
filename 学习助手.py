@@ -1221,6 +1221,13 @@ for i, tab_name in enumerate(stage_names):
                                 placeholder="先自己想，再看答案..."
                             )
 
+                            if st.button(f"查看答案对比", key=f"show_answer_{j}"):
+                                answer_match = re.search(r'答案[：:](.*?)$', trap, re.DOTALL)
+                                if answer_match:
+                                    st.markdown(answer_match.group(1))
+                                    if user_prejudge:
+                                        st.info(f"你的预判：{user_prejudge}\n\n对比上面的答案，看你的思路对不对。")
+
             with st.expander("📄 完整阶段三内容"):
                 st.markdown(content)
 
@@ -1243,6 +1250,13 @@ for i, tab_name in enumerate(stage_names):
                             placeholder="输入你的临床判断..."
                         )
 
+                        if st.button(f"对答案", key=f"check_decision_{j}"):
+                            answer_match = re.search(r'答案[：:](.*?)$', q_section, re.DOTALL)
+                            correct = ""
+                            if answer_match:
+                                correct = answer_match.group(1)[:300]
+                                st.info(f"**参考答案：** {correct}")
+
                         if user_decision.strip():
                                 error_type = st.selectbox(
                                     "这道题你做对了吗？",
@@ -1252,7 +1266,7 @@ for i, tab_name in enumerate(stage_names):
                                 if "错了" in error_type:
                                     et = st.selectbox("错因类型", ERROR_TYPES, key=f"error_type_{j}")
                                     if st.button("记录错题", key=f"log_error_{j}"):
-                                        log_error(name, "阶段四-临床决策", et, q_section[:200], user_decision, correct)
+                                        log_error(name, "阶段四-临床决策", et, q_section[:200], user_decision, "")
                                         st.success("✅ 错题已记录！")
 
             with st.expander("📄 完整阶段四内容"):
