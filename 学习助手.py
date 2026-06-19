@@ -1274,63 +1274,6 @@ for i, tab_name in enumerate(stage_names):
 
         # 阶段五：送命题测试
         elif i == 4:
-            st.markdown("#### 🔥 高仿真送命题")
-
-            # 提取子题
-            sub_questions = re.findall(r'(子题\d+[：:].*?)(?=子题\d+[：:]|\n\n##|\Z)', content, re.DOTALL)
-            if not sub_questions:
-                sub_questions = [content]
-
-            score = 0
-            total_q = 0
-
-            for j, sq in enumerate(sub_questions[:4]):
-                with st.expander(f"子题 {j+1}", expanded=True):
-                    # 显示题目
-                    q_text = re.sub(r'解析[：:].*', '', sq, flags=re.DOTALL)
-                    st.markdown(q_text[:1000])
-
-                    # 提取选项
-                    options = re.findall(r'([A-E])\s*[\.\、\s]+(.*?)(?=[A-E]\s*[\.\、\s]|\n\s*\n|\Z)', sq)
-                    choice = st.radio(
-                        f"选择你的答案",
-                        [f"{o[0]}. {o[1][:100]}" for o in options],
-                        key=f"quiz_{name}_{j}",
-                        index=None
-                    )
-
-                    if st.button(f"提交答案", key=f"submit_quiz_{j}"):
-                        if choice:
-                            user_choice = choice[0]
-                            # 查找正确答案
-                            answer_match = re.search(r'✅\s*正确答案[：:]\s*\*?\*?([A-E])', sq)
-                            if not answer_match:
-                                answer_match = re.search(r'正确[的]*答案[是为]*[：:]\s*([A-E])', sq)
-
-                            if answer_match:
-                                correct = answer_match.group(1)
-                                total_q += 1
-                                if user_choice == correct:
-                                    score += 1
-                                    st.success(f"✅ 正确！答案选 {correct}")
-                                else:
-                                    st.error(f"❌ 错误。你的答案：{user_choice}，正确答案：{correct}")
-                                    # 错题记录
-                                    error_type = st.selectbox("错因类型", ERROR_TYPES, key=f"quiz_error_{j}")
-                                    if st.button("记录此错题", key=f"log_quiz_{j}"):
-                                        log_error(name, "阶段五-送命题", error_type, q_text[:200], user_choice, correct)
-                                        st.success("✅ 已记录！")
-
-                            # 显示解析
-                            parse_match = re.search(r'解析[：:](.*?)$', sq, re.DOTALL)
-                            if parse_match:
-                                st.markdown("---")
-                                st.markdown("**解析：**")
-                                st.markdown(parse_match.group(1)[:1500])
-
-            if total_q > 0:
-                st.metric("得分", f"{score}/{total_q}")
-
             with st.expander("📄 完整阶段五内容"):
                 st.markdown(content)
 
