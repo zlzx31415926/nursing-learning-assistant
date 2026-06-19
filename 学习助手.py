@@ -1162,12 +1162,6 @@ for i, tab_name in enumerate(stage_names):
                     if user_answer:
                         st.session_state.fill_answers[blank_id] = user_answer
 
-            # 答案区域
-            answer_match = re.search(r'答案[：:](.*?)(?=\n\n|#|\Z)', content, re.DOTALL)
-            if answer_match:
-                with st.expander("📋 查看答案"):
-                    st.markdown(answer_match.group(1))
-
             # 显示原始内容
             with st.expander("📄 完整阶段一内容"):
                 st.markdown(content)
@@ -1204,13 +1198,6 @@ for i, tab_name in enumerate(stage_names):
                                 st.session_state.fill_results[blank_id] = None  # 需要人工核对
                                 st.success("已记录！")
 
-            with st.expander("📋 查看所有答案"):
-                answer_match = re.search(r'答案[：:](.*?)(?=\n\n#|\n\n阶段|\Z)', content, re.DOTALL)
-                if answer_match:
-                    st.markdown(answer_match.group(1))
-                else:
-                    st.markdown(content[-2000:])
-
             with st.expander("📄 完整阶段二内容"):
                 st.markdown(content)
 
@@ -1234,14 +1221,6 @@ for i, tab_name in enumerate(stage_names):
                                 placeholder="先自己想，再看答案..."
                             )
 
-                            if st.button(f"查看答案对比", key=f"show_answer_{j}"):
-                                answer_match = re.search(r'答案[：:](.*?)$', trap, re.DOTALL)
-                                if answer_match:
-                                    st.markdown("**正确答案：**")
-                                    st.markdown(answer_match.group(1))
-                                    if user_prejudge:
-                                        st.info(f"你的预判：{user_prejudge}\n\n对比上面的答案，看你的思路对不对。")
-
             with st.expander("📄 完整阶段三内容"):
                 st.markdown(content)
 
@@ -1264,14 +1243,7 @@ for i, tab_name in enumerate(stage_names):
                             placeholder="输入你的临床判断..."
                         )
 
-                        if st.button(f"对答案", key=f"check_decision_{j}"):
-                            answer_match = re.search(r'答案[：:](.*?)$', q_section, re.DOTALL)
-                            if answer_match:
-                                correct = answer_match.group(1)[:300]
-                                st.markdown(f"**参考答案：** {correct}")
-
-                            if user_decision.strip():
-                                # 简单判断（基于长度和关键词）
+                        if user_decision.strip():
                                 error_type = st.selectbox(
                                     "这道题你做对了吗？",
                                     ["对了 ✓", "错了 - 选择错因"],
