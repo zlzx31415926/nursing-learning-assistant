@@ -1221,38 +1221,8 @@ for i, tab_name in enumerate(stage_names):
             with st.expander("📄 完整阶段一内容"):
                 st.markdown(content)
 
-        # 阶段二：填空交互
+        # 阶段二：记忆
         elif i == 1:
-            blanks = list(re.finditer(r'______([①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳㉑㉒㉓㉔㉕㉖㉗㉘㉙㉚㉛㉜㉝㉞㉟㊱㊲㊳㊴㊵㊶㊷㊸㊹㊺㊻㊼㊽㊾㊿]+)______', content))
-            if blanks:
-                st.markdown("#### ✏️ 基础填空（逐个填写后批改）")
-                correct_count = 0
-                total = len(blanks)
-
-                for j, match in enumerate(blanks):
-                    blank_id = f"{name}_stage1_{j}"
-                    num = match.group(1)
-
-                    # 尝试提取正确答案
-                    answer_section = content[match.end():]
-                    correct_answer = "（答案见下方）"
-
-                    col_a, col_b = st.columns([3, 1])
-                    with col_a:
-                        start = max(0, match.start() - 120)
-                        end = min(len(content), match.end() + 120)
-                        context = content[start:end].replace(match.group(0), f"______**{num}**______")
-                        st.markdown(f"{context}")
-
-                    with col_b:
-                        user_answer = st.text_input(f"答案 {num}", key=f"fill2_{blank_id}", placeholder="输入")
-                        submit_key = f"submit_{blank_id}"
-                        if st.button("✓", key=submit_key):
-                            if user_answer.strip():
-                                st.session_state.fill_answers[blank_id] = user_answer
-                                st.session_state.fill_results[blank_id] = None  # 需要人工核对
-                                st.success("已记录！")
-
             with st.expander("📄 完整阶段二内容"):
                 st.markdown(content)
 
