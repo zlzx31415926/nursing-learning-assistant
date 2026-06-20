@@ -1404,50 +1404,59 @@ if st.session_state.get("show_ask_teacher"):
         if concept_a and concept_b:
             user_question = f"请帮我理清两个容易混淆的概念的区别——「{concept_a}」vs「{concept_b}」。从定义、机制、关键鉴别点、临床表现、护理处理五个维度对比。这两个概念都属于护理考点「{name}」的范畴。"
 
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
+    pending = st.session_state.pop("_pending_followup", "")
+    if pending:
+        user_question = pending
+
     if user_question and st.button("💡 问老师", type="primary"):
         with st.spinner("老师正在思考..."):
-            prompt = f"""你是一位耐心、善于用比喻讲解的护理学老师。
+            chat_context = ""
+            for msg in st.session_state.chat_history[-6:]:
+                chat_context += f"学生：{msg['q']}\n老师：{msg['a'][:300]}\n\n"
+            prompt = f"""你是一位耐心、善于用比喻讲解的护理学老师。以下是连续对话：
 
-学生正在学习「{name}」这个考点。当前学习材料的摘要如下：
-{loop_content[:2000]}
+{chat_context}
+学生的最新问题：{user_question}
+当前学习材料：{loop_content[:1500]}
 
-学生的问题是：
-{user_question}
-
-请你像一个好老师那样回答：
-1. 先用最通俗的方式解释（可以用生活中的比喻）
-2. 再回到医学语境中严谨地讲清楚
-3. 最后说明这和「{name}」的学习有什么关系、考试会怎么考
-4. 如果涉及解剖位置，描述具体位置（比如"在心脏的右上方，靠近..."）
-"""
+请用通俗比喻+严谨医学语境回答，并关联「{name}」的考试要点。"""
             try:
-                answer = call_deepseek(prompt, max_tokens=2000)
+                answer = call_deepseek(prompt, max_tokens=8000)
+                st.session_state.chat_history.append({"q": user_question, "a": answer})
                 st.markdown("---")
                 st.markdown("### 💡 老师讲解")
                 st.markdown(answer)
 
-                # 保存问答记录
                 qa_file = subject_kb_dir / f"{safe_name_dl}_问答记录.json"
                 qa_history = []
                 if qa_file.exists():
-                    try:
-                        qa_history = json.loads(qa_file.read_text(encoding='utf-8'))
-                    except:
-                        qa_history = []
-                qa_history.append({
-                    "question": user_question[:500],
-                    "answer": answer,
-                    "time": datetime.now().strftime("%m/%d %H:%M")
-                })
+                    try: qa_history = json.loads(qa_file.read_text(encoding='utf-8'))
+                    except: pass
+                qa_history.append({"question": user_question[:500], "answer": answer, "time": datetime.now().strftime("%m/%d %H:%M")})
                 qa_file.write_text(json.dumps(qa_history, ensure_ascii=False, indent=2), encoding='utf-8')
-
-                # 追问
-                st.text_input("还有不懂的？继续追问：", key=f"followup_{hash(user_question)}", placeholder="继续问...")
+                st.rerun()
             except Exception as e:
                 st.error(f"提问失败: {e}")
 
-    if st.button("✕ 关闭", key="close_ask"):
+    # 对话历史
+    if st.session_state.get("chat_history"):
+        with st.expander(f"💬 本次对话（{len(st.session_state.chat_history)}轮）"):
+            for msg in st.session_state.chat_history:
+                st.caption(f"❓ {msg['q'][:200]}")
+                st.markdown(msg['a'])
+                st.divider()
+
+    # 追问
+    followup = st.text_input("继续追问（基于上文对话）：", key="followup_input", placeholder="上一个问题基础上继续...")
+    if followup and st.button("💡 追问", type="primary"):
+        st.session_state["_pending_followup"] = followup
+        st.rerun()
+
+    if st.button("✕ 关闭并清空对话", key="close_ask"):
         st.session_state.show_ask_teacher = False
+        st.session_state.chat_history = []
         st.rerun()
 
 # ============================================================
