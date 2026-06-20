@@ -1029,6 +1029,62 @@ with btn_col3:
         use_container_width=True
     )
 
+# ===== 临床威胁等级推演 =====
+clin_file = subject_kb_dir / f"{safe_name_dl}_临床推演.md"
+if st.button("🩺 生成临床威胁等级推演", use_container_width=True,
+             help="生成风险分层推理链+决策树+优先级矩阵（高威胁疾病推荐）"):
+    with st.spinner("🩺 正在生成临床决策推演..."):
+        clin_prompt = f"""你是一位临床护理带教老师。请为「{name}」生成一份临床威胁等级推演材料。按以下结构输出：
+
+# {name} · 临床威胁等级推演
+
+## 一、30秒速览卡
+用3-5行最简标语列出核心威胁和首要行动。
+
+## 二、推理链总纲
+以"我接诊一个{name}患者"为起点，输出：第一步→第二步→第三步→第四步的主路径。
+
+## 三、分链一：部位决定风险
+- 哪些部位/类型是极高危？为什么？（解剖机制）
+- 哪些是中低危？为什么？
+- 护理决策链路表格：看到什么 | 判断 | 行动
+
+## 四、分链二：体征触发决策
+列举3-5个关键体征，每个体征：
+- 为什么这个体征最优先？（病理生理机制）
+- 行动链路：发现XX→判断XX→立即XX
+- ⚠️ 考题陷阱：这个体征最容易和什么混淆？
+
+## 五、分链三：高危人群调整判断
+列举2-3类高危人群（糖尿病/老人/免疫抑制），每类：
+- 病理放大机制
+- 护理决策调整
+- 与普通人群的关键区别
+
+## 六、综合决策树
+用文本流程图输出从接诊到护理计划的完整分支。
+
+## 七、优先级矩阵
+| 优先级 | 临床情境 | 核心干预 | 时限 |
+
+## 八、考试陷阱标注
+至少3条，每条：陷阱描述 | 为什么有人会选错 | 正确做法
+
+参考知识点：
+{loop_content[:3000]}"""
+        try:
+            clin_content = call_deepseek(clin_prompt, max_tokens=4000)
+            clin_file.write_text(clin_content, encoding='utf-8')
+            st.success("✅ 临床推演已生成")
+            st.rerun()
+        except Exception as e:
+            st.error(f"生成失败: {e}")
+
+# 显示已生成的临床推演
+if clin_file.exists():
+    with st.expander("🩺 临床威胁等级推演（已生成）", expanded=False):
+        st.markdown(clin_file.read_text(encoding='utf-8'))
+
 st.divider()
 
 # 解析学习环内容，提取各阶段
