@@ -579,12 +579,12 @@ def generate_learning_loop(disease_name: str, disease_points: str, tier: int, pr
 阶段六：复盘 - 学习环总览 + 阶段自检清单（每个阶段一个核心问题）+ 错题画像 + 知识修补清单 + 考前救急方案"""
 
         content_1_3 = call_deepseek(
-            base_prompt + f"\n\n【生成内容】：{config_1_3}\n\n只输出阶段一至三，不要输出后续内容。",
+            base_prompt + f"\n\n【生成内容】：{config_1_3}\n\n只输出阶段一至三。",
             SYSTEM_PROMPT, max_tokens=8000
         )
         try:
             content_4_6 = call_deepseek(
-                base_prompt + f"\n\n【上文末尾】：\n{content_1_3[-800:]}\n\n【生成内容】：{config_4_6}\n\n⚠️上文已经完成了阶段一至三。请直接从阶段四开始，不要重复生成任何前面已有的内容。",
+                base_prompt + f"\n\n【前三个阶段已生成】：\n{content_1_3}\n\n【生成内容】：{config_4_6}\n\n请接着输出阶段四至六。保持与前文风格一致，不要重复已有内容。",
                 SYSTEM_PROMPT, max_tokens=8000
             )
         except Exception:
@@ -605,14 +605,12 @@ def generate_learning_loop(disease_name: str, disease_points: str, tier: int, pr
 阶段六：复盘——学习环总览 + 阶段自检清单 + 知识修补清单"""
 
         content_a = call_deepseek(
-            base_prompt + f"\n\n【生成内容】：{t2_config_a}\n\n只输出阶段一至三，不要输出后续内容。",
+            base_prompt + f"\n\n【生成内容】：{t2_config_a}\n\n只输出阶段一至三。",
             SYSTEM_PROMPT, max_tokens=6000
         )
-        # 用阶段三个标题做断点标记，防止第二次调用重复
-        ctx_a = content_a[-800:] if len(content_a) > 800 else content_a
         try:
             content_b = call_deepseek(
-                base_prompt + f"\n\n【上文末尾】：{ctx_a}\n\n【生成内容】：{t2_config_b}\n\n⚠️上文已经完成了阶段一至三。请直接从阶段四开始，不要重复生成任何前面已有的内容。",
+                base_prompt + f"\n\n【前三个阶段已生成】：\n{content_a}\n\n【生成内容】：{t2_config_b}\n\n请接着输出阶段四至六。保持与前文风格一致，不要重复已有内容。",
                 SYSTEM_PROMPT, max_tokens=6000
             )
         except Exception:
