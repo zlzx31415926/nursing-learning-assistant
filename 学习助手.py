@@ -606,13 +606,13 @@ def generate_learning_loop(disease_name: str, disease_points: str, tier: int, pr
 
         content_a = call_deepseek(
             base_prompt + f"\n\n【生成内容】：{t2_config_a}\n\n请输出 Markdown 格式的阶段一至三。",
-            SYSTEM_PROMPT, max_tokens=8000
+            SYSTEM_PROMPT, max_tokens=6000
         )
         ctx_a = content_a[-500:] if len(content_a) > 500 else content_a
         try:
             content_b = call_deepseek(
                 base_prompt + f"\n\n【前文摘要】：{ctx_a}\n\n【生成内容】：{t2_config_b}\n\n请接着输出阶段四至六。",
-                SYSTEM_PROMPT, max_tokens=8000
+                SYSTEM_PROMPT, max_tokens=6000
             )
         except Exception:
             content_b = "\n\n---\n\n⚠️ 阶段四至六生成失败，请重试。\n\n"
