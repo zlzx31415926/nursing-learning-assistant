@@ -1073,7 +1073,7 @@ if st.button("🩺 生成临床威胁等级推演", use_container_width=True,
 参考知识点：
 {loop_content[:3000]}"""
         try:
-            clin_content = call_deepseek(clin_prompt, max_tokens=4000)
+            clin_content = call_deepseek(clin_prompt, max_tokens=8000)
             clin_file.write_text(clin_content, encoding='utf-8')
             st.success("✅ 临床推演已生成")
             st.rerun()
