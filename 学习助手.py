@@ -465,17 +465,16 @@ def judge_tier(disease_info: dict) -> int:
     summary = disease_info.get("summary", "")
     name = disease_info.get("name", "")
 
-    # ≥6条 → 第三档
-    if count >= 6:
+    # ≥4条 → 第三档
+    if count >= 4:
         return 3
-    # 含强制关键词 → 第三档
     for kw in TIER_FORCE_KEYWORDS:
         if kw in summary or kw in name:
             return 3
-    # 3-5条 → 第二档
-    if count >= 3:
+    # 1-3条 → 第二档
+    if count >= 1:
         return 2
-    # ≤2条 → 第一档
+    # 0条 → 第一档
     return 1
 
 
